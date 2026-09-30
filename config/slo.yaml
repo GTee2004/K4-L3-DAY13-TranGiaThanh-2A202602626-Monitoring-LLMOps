@@ -1,13 +1,25 @@
 service: day13-l3b-monitoring-llmops-lab
 primary_slo:
   name: fast_successful_requests
-  window: 28d
+  window: 10000_requests
+  window_requests: 10000
   sli:
     good_event: 'event == "response_sent" and latency_ms <= 3000'
     total_event: 'event == "request_received"'
+    latency_percentile: p95
+    latency_threshold_ms: 3000
   target_percent: 99.5
   error_budget_percent: 0.5
-  note: Học viên phải giải thích hoặc điều chỉnh ngưỡng bằng baseline của mình. Ví dụ nếu có 10,000 request trong cửa sổ 28 ngày, error budget 0.5% nghĩa là tối đa 50 request được phép không đạt SLO.
+  error_budget_requests: 50
+  error_budget_calculation: '10000 * (100 - 99.5) / 100 = 50 requests'
+  baseline:
+    source: data/logs.jsonl
+    response_count: 64
+    latency_p95_ms: 1042
+    ttft_p95_ms: 50
+    error_rate_percent: 0
+    retrieval_success_rate_percent: 100
+  note: 'The 3000 ms P95 threshold is about 2.9x the observed 1042 ms baseline, leaving headroom for normal variation. The request-count window is used because the lab workload is small and intermittent. At least 9950 of every 10000 requests must complete successfully within 3000 ms; at most 50 requests may miss the SLO.'
 guardrails:
   error_rate_pct_max: 2
   daily_cost_usd_max: 2.5

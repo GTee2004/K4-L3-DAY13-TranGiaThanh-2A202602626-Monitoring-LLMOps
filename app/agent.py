@@ -51,7 +51,11 @@ class LabAgent:
             },
         ):
             started = time.perf_counter()
-            docs = retrieve(message)
+            docs = retrieve(
+                message,
+                correlation_id=correlation_id,
+                feature=feature,
+            )
             prompt = resolve_prompt(
                 langfuse_client,
                 feature=feature,
@@ -71,10 +75,15 @@ class LabAgent:
                 },
                 version=prompt.version,
             )
-            # TODO (CP2): instrument retrieve() and FakeLLM.generate() as child
-            # observations. The nested generation must receive prompt, usage and cost.
             with propagate_attributes(prompt=prompt.managed_prompt):
-                response = self.llm.generate(prompt.text)
+                response = self.llm.generate(
+                    prompt.text,
+                    correlation_id=correlation_id,
+                    prompt_name=prompt.name,
+                    prompt_label=prompt.label,
+                    prompt_version=prompt.version,
+                    prompt_object=prompt.managed_prompt,
+                )
             quality_score = self._heuristic_quality(message, response.text, docs)
             latency_ms = int((time.perf_counter() - started) * 1000)
             cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)
